@@ -16,8 +16,6 @@ canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #panel{position:absolute;top:14px;left:14px;background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:10px 14px;min-width:270px;font-weight:800;font-size:14px;line-height:1.7;box-shadow:0 4px 0 var(--ink)}
 #panel .big{font-size:26px;line-height:1.3}
 #panel button{margin-top:8px;width:100%;pointer-events:auto}
-#help{position:absolute;top:14px;right:14px;background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:10px 14px;font-weight:800;font-size:13px;line-height:1.7;text-align:right;box-shadow:0 4px 0 var(--ink)}
-#help kbd{background:#fff;border:2px solid var(--ink);border-radius:6px;padding:0 6px;font-family:inherit}
 #escape{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:min(460px,40vw);display:none;text-align:center;font-weight:800;color:#fff;text-shadow:0 2px 0 var(--ink)}
 .track{height:18px;border:3px solid var(--ink);border-radius:10px;background:rgba(255,255,255,.5);overflow:hidden;margin-top:4px}
 .track i{display:block;height:100%;width:0;background:var(--green);transition:width .1s}
@@ -43,37 +41,34 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #menuMsg{min-height:20px;margin-top:10px;color:var(--red);font-weight:800;font-size:13px}
 #who{font-size:13px;font-weight:800;margin-bottom:10px}
 #signOut{margin-top:12px;font-size:12px;padding:4px 10px;background:#fff}
+#danger{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 160px 40px rgba(229,72,77,0)}
+#rouletteText{position:absolute;left:50%;top:16%;transform:translateX(-50%);display:none;font-size:clamp(28px,5vw,60px);font-weight:800;color:#fff;text-shadow:0 5px 0 var(--ink),0 0 16px rgba(0,0,0,.5);white-space:nowrap}
+#meterLane,#meterInfo{max-width:92vw;text-align:center}
+.card p.hint{font-size:12px;color:#445;margin:0 0 12px}
 </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
 
 <div id="hud">
+  <div id="danger"></div>
   <div id="panel">
     <div class="big">💰 <span id="uiMoney">0</span></div>
     <div>🏦 基地バンク：<span id="uiBank">0</span></div>
     <div>💪 キックパワー：<span id="uiPower">10</span>（最大飛距離 <span id="uiDist">0</span>m）</div>
-    <div>🏃 スピードLv：<span id="uiSpeed">1</span></div>
+    <div>🏃 スピードLv（逃走中のみ）：<span id="uiSpeed">1</span></div>
     <div>👾 キャラ：<span id="uiPets">0</span>/10 ／ 収入 <span id="uiInc">0</span>/秒</div>
     <div>📖 図鑑：<span id="uiDex">0</span>/20</div>
     <button id="speedBtn">スピード強化 [R]</button>
   </div>
-  <div id="help">
-    <div><kbd>マウス</kbd> 視点操作 ／ <kbd>ホイール</kbd> ズーム</div>
-    <div><kbd>W A S D</kbd> 移動 ／ <kbd>Space</kbd> ジャンプ</div>
-    <div><kbd>Q</kbd> ダンベル筋トレ ON/OFF</div>
-    <div>セーフゾーンで立つ場所＝挑むレーン</div>
-    <div><kbd>E</kbd> / クリック メーターを止めてキック</div>
-    <div>逃走中：<kbd>W</kbd> ゴールへ ／ <kbd>A D</kbd> 左右</div>
-    <div><kbd>R</kbd> スピード強化（金）</div>
-  </div>
   <div id="escape"><div id="escapeText"></div><div class="track"><i id="escapeFill"></i></div></div>
+  <div id="rouletteText"></div>
   <div id="cross"></div>
   <div id="banner"></div>
   <div id="bottom">
     <div id="meterWrap">
       <div id="meterLane"></div>
-      <div class="meter"><i id="meterMark"></i></div>
+      <div class="meter" id="meterBar"><i id="meterMark"></i></div>
       <div id="meterInfo"></div>
     </div>
     <div id="workStatus"></div>
@@ -83,7 +78,8 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 <div id="menu">
   <div class="card">
     <h1>LUCKY BLOCK<br>TSUNAMI SURVIVAL</h1>
-    <p>ダンベルでパワーを鍛え、メーターを合わせてブロックを蹴ろう。<br>飛び出したキャラを操作して、津波から逃げ切れ！</p>
+    <p>ダンベルでパワーを溜め、メーターを合わせて遠くへ蹴ろう。<br>着地したゾーンのレアリティのキャラが出る！ 出たキャラを操作して津波から逃げ切れ！</p>
+    <p class="hint">操作：WASD 移動 ／ Space ジャンプ ／ マウス 視点 ／ Q 筋トレ ／ E・クリック キック ／ R スピード強化 ／ C 視点切替（逃走中）</p>
     <div id="who"></div>
     <button id="loginBtn">
       <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -126,27 +122,31 @@ const fmt = n => Math.floor(n).toLocaleString('ja-JP');
 
 const MAX_PETS = 10, MAX_SPEED_LV = 30;
 const LANE_START = -40;            // セーフゾーンとレーンの境目(z)
-const LANE_LEN = 4000;
-const LANE_W = 28, HALF_X = 69;
-const laneCx = i => (i - 2) * LANE_W;     // 5本のレーン中心x: -56,-28,0,28,56
-const WAVE_GAP = 30;
+const LANE_LEN = 4000, LANE_W = 60, HALF_X = 28.5;
+const WAVE_GAP = 30;               // 出現時、波が背後にいる距離
+const WALK_SPEED = 14;             // 基地・セーフゾーンでの歩く速さ（スピードLvは影響しない）
 const PLATE = { x:0, z:20, hw:6, hd:4.5 };
 const PED = [];
-for (let r = 0; r < 2; r++) for (let i = 0; i < 5; i++) PED.push({ x:-40 + i * 20, z:50 + r * 20 });
+for (let r = 0; r < 2; r++) for (let i = 0; i < 5; i++) PED.push({ x:-24 + i * 12, z:50 + r * 20 });
 
-/* レーンのランク：w0=波の基本速度 / rec=推奨スピードLv */
-const LANES = [
-  { n:'コモン',         c:0x8d96a3, css:'#d1d5db', w0:14, rec:1  },
-  { n:'レア',           c:0x4f7fd6, css:'#93c5fd', w0:20, rec:5  },
-  { n:'エピック',       c:0x8b5cc7, css:'#d8b4fe', w0:27, rec:9  },
-  { n:'レジェンダリー', c:0xd9a21b, css:'#fcd34d', w0:35, rec:15 },
-  { n:'神話級',         c:0xd6406a, css:'#fda4af', w0:44, rec:21 }
+const RANKS = [
+  { n:'コモン',         c:0x8d96a3, css:'#d1d5db' },
+  { n:'レア',           c:0x4f7fd6, css:'#93c5fd' },
+  { n:'エピック',       c:0x8b5cc7, css:'#d8b4fe' },
+  { n:'レジェンダリー', c:0xd9a21b, css:'#fcd34d' },
+  { n:'神話級',         c:0xd6406a, css:'#fda4af' }
 ];
-const maxKick     = () => Math.min(3800, Math.round(60 + gs.kickPower * 8));   // キックパワー → 最大飛距離
-const kickDist    = m => Math.round(60 + (maxKick() - 60) * m);                 // メーター位置mで飛距離が決まる
-const playerSpeed = () => 16 + 1.5 * (gs.speedLevel - 1);
-const speedCost   = () => Math.floor(50 * Math.pow(1.5, gs.speedLevel - 1));
-const waveSpeed   = (lane, D) => LANES[lane].w0 + D / 250;
+const ZONE_LEN = 800;                              // 各レアリティゾーンの長さ(m)
+const BANDS = [0, 800, 1600, 2400, 3200, 4000];    // コモン→レア→エピック→レジェンダリー→神話級
+
+const maxKick  = () => Math.min(3800, Math.round(60 + gs.kickPower * 8));   // キックパワー → 最大飛距離
+const kickDist = m => Math.round(60 + (maxKick() - 60) * m);                 // メーター位置 → 飛距離
+const runSpeed  = () => 16 + 1.5 * (gs.speedLevel - 1);                      // 逃走中だけ反映されるスピード
+const speedCost = () => Math.floor(50 * Math.pow(1.5, gs.speedLevel - 1));
+const waveSpeed = D => 14 + D / 110;                                         // 遠いほど波も速い
+const recLv     = D => Math.max(1, Math.ceil((waveSpeed(D) - 16) / 1.5 + 1));
+/* 着地したゾーン＝レアリティ（確定）。弱い蹴り→手前のゾーン、強い蹴り→奥のゾーン */
+const zoneOf = D => clamp(Math.floor(D / ZONE_LEN), 0, 4);
 
 /* ================= キャラ 20体 ================= */
 const box = (w, h, d, color, x, y, z, parent = scene) => {
@@ -275,31 +275,31 @@ function makeLabel(w, h, sx, sy){
 }
 
 /* ================= ワールド ================= */
-const WORLD_W = HALF_X * 2 + 4;
-box(3000, 0.4, 9000, 0x5aa84a, 0, -0.6, -2000);                             // 地面
-box(WORLD_W - 4, 0.4, 90, 0x86efac, 0, -0.2, 45);                            // 基地
-box(WORLD_W - 4, 0.4, 40, 0xbfdbfe, 0, -0.2, -20);                           // セーフゾーン
-box(WORLD_W, 3, 2, 0x9ca3af, 0, 1.5, 91);                                    // 基地の奥の壁
+box(3000, 0.4, 9000, 0x5aa84a, 0, -0.6, -2000);                       // 地面
+box(60, 0.4, 90, 0x86efac, 0, -0.2, 45);                               // 基地
+box(60, 0.4, 40, 0xbfdbfe, 0, -0.2, -20);                              // セーフゾーン
+box(62, 3, 2, 0x9ca3af, 0, 1.5, 91);                                   // 基地の奥の壁
+box(60, 0.2, 1.2, 0xffffff, 0, 0, LANE_START);                         // スタートライン
 
-LANES.forEach((L, i) => {
-  const cx = laneCx(i);
-  box(LANE_W, 0.4, LANE_LEN, L.c, cx, -0.2, LANE_START - LANE_LEN / 2);      // レーン床（ランク色）
-  box(LANE_W - 2, 0.2, 26, L.c, cx, 0, -27);                                  // セーフゾーン内の発射パッド
-  box(LANE_W, 0.2, 1.2, 0xffffff, cx, 0, LANE_START);                         // スタートライン
-  const s = makeLabel(512, 170, 18, 6); s.userData.set([L.n + 'レーン', `推奨 スピードLv.${L.rec}`], L.css);
-  s.position.set(cx, 11, LANE_START); scene.add(s);
-  for (let m = 500; m <= 3500; m += 500){
-    box(LANE_W, 0.3, 0.8, 0xffffff, cx, 0, LANE_START - m);
-    const t = makeLabel(256, 96, 8, 3); t.userData.set([m + 'm']); t.position.set(cx - LANE_W / 2 + 4, 5, LANE_START - m); scene.add(t);
-  }
+// 1本の長いレーン。距離ごとにレアリティ帯の色が変わる
+RANKS.forEach((R, i) => {
+  const a = BANDS[i], b = BANDS[i + 1];
+  box(LANE_W, 0.4, b - a, R.c, 0, -0.2, LANE_START - (a + b) / 2);
+  if (i > 0) box(LANE_W, 0.3, 1, 0xffffff, 0, 0, LANE_START - a);
+  const s = makeLabel(512, 150, 16, 4.7); s.userData.set([R.n + 'ゾーン', `${a}〜${b}m`], R.css);
+  s.position.set(-21, 7, LANE_START - a - 1); scene.add(s);
 });
-for (const wx of [-70, -42, -14, 14, 42, 70]) box(1.6, 8, LANE_LEN, 0x6b7280, wx, 3.6, LANE_START - LANE_LEN / 2);   // レーンの仕切り壁
-for (const sx of [-1, 1]) box(1.6, 8, 131, 0x6b7280, sx * 70, 3.6, 25.5);                                       // 基地・セーフゾーンの外壁
+for (let m = 500; m <= 3500; m += 500){
+  if (!BANDS.includes(m)) box(LANE_W, 0.3, 0.8, 0xffffff, 0, 0, LANE_START - m);
+  const t = makeLabel(256, 96, 8, 3); t.userData.set([m + 'm']); t.position.set(22, 5, LANE_START - m); scene.add(t);
+}
+for (const sx of [-1, 1]) box(1.6, 8, 4131, 0x6b7280, sx * 31, 3.6, (91 + LANE_START - LANE_LEN) / 2);   // 左右の壁
 
-// セーフゾーンのゲート
-for (const sx of [-1, 1]) box(2.5, 15, 2.5, 0xef4444, sx * 70, 7.5, 0);
-box(143, 2.5, 2.5, 0xef4444, 0, 14.5, 0);
+// セーフゾーンのゲートと看板
+for (const sx of [-1, 1]) box(2.5, 15, 2.5, 0xef4444, sx * 29, 7.5, 0);
+box(61, 2.5, 2.5, 0xef4444, 0, 14.5, 0);
 { const s = makeLabel(512, 128, 26, 6.5); s.userData.set(['SAFE ZONE'], '#bfdbfe', 'rgba(20,33,61,.85)'); s.position.set(0, 18.5, 0); scene.add(s); }
+{ const s = makeLabel(640, 170, 26, 7); s.userData.set(['ラッキーレーン', '着地したゾーンのレアリティが当たる！'], '#fde68a'); s.position.set(0, 12, LANE_START); scene.add(s); }
 
 // 感圧板（金の受け取り）
 const plate = box(12, 0.3, 9, 0xfacc15, PLATE.x, 0.1, PLATE.z);
@@ -315,9 +315,9 @@ function makeDumbbell(scale = 1){
   for (const sx of [-1, 1]){ const p = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, .55, 16), new THREE.MeshLambertMaterial({ color:0x4b5563 })); p.rotation.z = Math.PI / 2; p.position.x = sx * 1.4; g.add(p); }
   g.scale.setScalar(scale); return g;
 }
-{ box(8, 1.4, 3, 0x7c4a2d, -52, 0.7, 14);
-  for (let i = -1; i <= 1; i++){ const d = makeDumbbell(.5); d.position.set(-52 + i * 2.4, 1.9, 14); scene.add(d); }
-  const s = makeLabel(384, 110, 9, 2.6); s.userData.set(['Q：筋トレ']); s.position.set(-52, 5.5, 14); scene.add(s); }
+{ box(8, 1.4, 3, 0x7c4a2d, -22, 0.7, 14);
+  for (let i = -1; i <= 1; i++){ const d = makeDumbbell(.5); d.position.set(-22 + i * 2.4, 1.9, 14); scene.add(d); }
+  const s = makeLabel(384, 110, 9, 2.6); s.userData.set(['Q：筋トレ']); s.position.set(-22, 5.5, 14); scene.add(s); }
 
 // キャラ置き場
 const pedestals = PED.map(p => {
@@ -334,11 +334,11 @@ function rebuildPets(){
     c.traverse(o => { if (o.material && o.material.map) o.material.map.dispose(); });
   }
   petMeshes = [];
-  pedestals.forEach((ped, i) => ped.material.color.setHex(gs.pets[i] ? LANES[SP[gs.pets[i].sp].r].c : 0x6b7280));
+  pedestals.forEach((ped, i) => ped.material.color.setHex(gs.pets[i] ? RANKS[SP[gs.pets[i].sp].r].c : 0x6b7280));
   gs.pets.forEach((p, i) => {
     const g = makePetModel(p.sp); g.position.set(PED[i].x, 0.6, PED[i].z); g.rotation.y = Math.PI;
     g.userData.phase = rnd(0, 6.28); petsGroup.add(g); petMeshes.push(g);
-    const L = LANES[SP[p.sp].r], s = makeLabel(480, 170, 12, 4.2);
+    const L = RANKS[SP[p.sp].r], s = makeLabel(480, 170, 12, 4.2);
     s.userData.set([SP[p.sp].n, `${L.n} +${p.inc}/秒`], L.css); s.position.set(PED[i].x, 10, PED[i].z); petsGroup.add(s);
   });
 }
@@ -364,7 +364,7 @@ const wave = { group:new THREE.Group(), front:0, speed:0, t:0 };
   const foam = box(LANE_W + 2, 4, 26, 0xffffff, 0, 29.5, 0, wave.group); foam.material.transparent = true; foam.material.opacity = .9; foam.material.depthWrite = false; foam.renderOrder = 2;
   const front = box(LANE_W + 2, 16, 1, 0xbfdbfe, 0, 8, 12.4, wave.group); front.material.transparent = true; front.material.opacity = .8; front.material.depthWrite = false; front.renderOrder = 2;
   wave.body = body; wave.group.visible = false; scene.add(wave.group); }
-const placeWave = lane => wave.group.position.set(laneCx(lane), 0, wave.front - 12);
+const placeWave = () => wave.group.position.set(0, 0, wave.front - 12);
 
 /* プレイヤー（自分のキャラ） */
 function makeCharacter(){
@@ -400,21 +400,25 @@ function burst(pos, color, n = 20, spd = 8){
 }
 
 /* ================= 状態・入力 ================= */
-let state = 'idle';            // idle(自分を操作) | flying | escape(キャラを操作)
+let state = 'idle';            // idle(自分を操作) | flying | roulette | escape(キャラを操作)
 let lifting = false, running = false, locked = false, dragMode = false;
 const keys = {};
-const cam = { yaw:0, pitch:.45, dist:17, mul:1 };
+const cam = { yaw:0, pitch:.45, dist:17, mul:1, goal:null };
 const camTarget = new THREE.Vector3(0, 4.5, 30);
-let K = null;                  // 今回のキック情報
+let K = null, roul = null;
 let meterT = 0, meterVal = 0, meterOn = false;
 
 const inSafe = () => player.position.z < 0 && player.position.z > LANE_START;
-const curLane = () => clamp(Math.floor((player.position.x + 70) / LANE_W), 0, 4);
-const tri = t => 1 - Math.abs((t % 1) * 2 - 1);      // 0→1→0 の往復
+const tri = t => 1 - Math.abs((t % 1) * 2 - 1);
+const lerpAngle = (a, b, t) => a + ((((b - a + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * t;
 
 function showMessage(text, ms = 2500, color = '#fff'){
   const b = $('banner'); b.textContent = text; b.style.color = color; b.style.display = 'block';
   clearTimeout(showMessage.t); showMessage.t = setTimeout(() => b.style.display = 'none', ms);
+}
+function showRoulette(text, color = '#fff'){
+  const el = $('rouletteText'); if (!text){ el.style.display = 'none'; return; }
+  el.textContent = text; el.style.color = color; el.style.display = 'block';
 }
 
 addEventListener('keydown', e => {
@@ -426,6 +430,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyQ') toggleWorkout();
   if (e.code === 'KeyE') startKick();
   if (e.code === 'KeyR') upgradeSpeed();
+  if (e.code === 'KeyC') toggleView();
 });
 addEventListener('keyup', e => keys[e.code] = false);
 addEventListener('mousemove', e => {
@@ -454,53 +459,103 @@ function upgradeSpeed(){
   const c = speedCost();
   if (gs.money < c){ showMessage(`金が足りない！（${fmt(c)}金）`, 1500, '#fca5a5'); return; }
   gs.money -= c; gs.speedLevel++; saveData();
-  showMessage(`スピードUP！ Lv${gs.speedLevel}`, 1500, '#93c5fd');
+  showMessage(`スピードUP！ Lv${gs.speedLevel}（逃走中に反映）`, 1800, '#93c5fd');
 }
-function snapCam(){ camTarget.copy(targetPos()); }
+function toggleView(){   // 逃走中：後ろから／前から（波が見える）
+  if (state !== 'escape') return;
+  cam.goal = Math.cos(cam.yaw) < 0 ? 0 : Math.PI;
+}
 function targetPos(){
   if (state === 'flying') return flyBlock.position.clone();
+  if (state === 'roulette') return new THREE.Vector3(K.landX, 4, K.landZ);
   if (state === 'escape' && runner) return runner.g.position.clone().setY(runner.g.position.y + 3.5);
   return player.position.clone().setY(player.position.y + 4.5);
 }
+const snapCam = () => camTarget.copy(targetPos());
 
 /* メーターで止めてキック */
 function startKick(){
   if (!meterOn) return;
-  const lane = curLane(), D = kickDist(meterVal);
-  K = { D, lane, m:meterVal, landX:laneCx(lane) + rnd(-6, 6), landZ:LANE_START - D, sx:player.position.x, sz:player.position.z,
+  const D = kickDist(meterVal);
+  K = { D, m:meterVal, landX:rnd(-12, 12), landZ:LANE_START - D, sx:player.position.x, sz:player.position.z,
         t:0, dur:Math.min(7, 2.4 + D / 450), peak:25 + D * .12 };
   gs.bestDist = Math.max(gs.bestDist, D);
   player.position.y = 0; pst.vy = 0; pst.vel.set(0, 0, 0); pst.kickAnim = .45;
   state = 'flying'; meterOn = false;
   flyBlock.visible = true; flyBlock.position.set(K.sx, 10, K.sz);
-  cam.yaw = 0; cam.pitch = .4; cam.mul = 2; snapCam();
-  showMessage(`${LANES[lane].n}レーンへキック！ ${D}m！${K.m >= .9 ? ' PERFECT!' : ''}`, 2200, K.m >= .9 ? '#fde047' : '#fff');
+  cam.yaw = 0; cam.pitch = .4; cam.mul = 2; cam.goal = null; snapCam();
+  showMessage(`${D}m キック！！${K.m >= .9 ? ' PERFECT!' : ''}`, 2200, K.m >= .9 ? '#fde047' : '#fff');
 }
-function rollSpecies(lane, m){
-  let r = lane, up = false;
-  if (r < 4 && Math.random() < .08 + (m >= .9 ? .17 : 0)){ r++; up = true; }
-  const pool = SP.map((s, i) => i).filter(i => SP[i].r === r);
-  return { sp:pool[Math.floor(Math.random() * pool.length)], up };
+function pickSpecies(D){
+  const r = zoneOf(D), pool = SP.map((s, i) => i).filter(i => SP[i].r === r);
+  return pool[Math.floor(Math.random() * pool.length)];
 }
+
+/* ルーレット用のシルエット */
+const silMat = new THREE.MeshBasicMaterial({ color:0x0b1020 });
+const sils = {};
+function getSil(sp){
+  if (!sils[sp]){
+    const g = makePetModel(sp); g.traverse(o => { if (o.isMesh) o.material = silMat; });
+    g.scale.setScalar(1.5); g.visible = false; scene.add(g); sils[sp] = g;
+  }
+  return sils[sp];
+}
+function showSil(sp){
+  for (const k in sils) sils[k].visible = false;
+  if (sp === null) return;
+  const g = getSil(sp); g.position.set(K.landX, 0, K.landZ); g.rotation.set(0, 0, 0); g.visible = true;
+}
+
+/* ブロックが着地 → シルエットがルーレット → 「デン！」で確定 → 逃走開始 */
 function landBlock(){
   burst(new THREE.Vector3(K.landX, 3, K.landZ), 0xf7c61b, 45, 16);
   flyBlock.visible = false;
-  const roll = rollSpecies(K.lane, K.m);
-  K.sp = roll.sp; K.up = roll.up;
+  K.sp = pickSpecies(K.D);
   K.inc = Math.max(1, Math.round(SP[K.sp].base * (1 + K.D / 1500) * rnd(.9, 1.1)));
-  const g = makePetModel(K.sp); g.scale.setScalar(1.5); g.position.set(K.landX, 0, K.landZ);
-  scene.add(g); runner = { g, sp:K.sp, y:0, vy:0, t:0 };
-  burst(new THREE.Vector3(K.landX, 4, K.landZ), 0xffffff, 25, 10);
-  wave.front = K.landZ - WAVE_GAP; wave.speed = waveSpeed(K.lane, K.D); wave.t = 0;
-  wave.body.material.color.setHex(LANES[K.lane].c); placeWave(K.lane); wave.group.visible = true;
-  state = 'escape'; cam.yaw = 0; cam.pitch = .3; cam.mul = 1.25; snapCam();
+  const seq = [], times = []; let tsum = 0, dtv = .07, last = -1;
+  while (tsum < 3.2){
+    let c; do { c = Math.floor(Math.random() * SP.length); } while (c === last);
+    last = c; seq.push(c); tsum += dtv; times.push(tsum); dtv *= 1.16;
+  }
+  roul = { seq, times, t:0, idx:-1, phase:'spin', hold:0 };
+  state = 'roulette'; cam.yaw = 0; cam.pitch = .28; cam.mul = .85; cam.goal = null; snapCam();
+  showRoulette('ドゥルルルルル…', '#fff');
+  showMessage(`${RANKS[zoneOf(K.D)].n}ゾーンに着地！ 中身は…`, 2600, RANKS[zoneOf(K.D)].css);
+}
+function updateRoulette(dt){
+  roul.t += dt;
+  if (roul.phase === 'spin'){
+    let idx = 0; while (idx < roul.times.length && roul.t >= roul.times[idx]) idx++;
+    if (idx >= roul.times.length){
+      roul.phase = 'reveal'; roul.hold = 0; showSil(null);
+      const g = makePetModel(K.sp); g.scale.setScalar(1.5); g.position.set(K.landX, 0, K.landZ);
+      scene.add(g); runner = { g, sp:K.sp, y:0, vy:0, t:0 };
+      const R = RANKS[SP[K.sp].r];
+      burst(new THREE.Vector3(K.landX, 4, K.landZ), R.c, 45, 16); burst(new THREE.Vector3(K.landX, 4, K.landZ), 0xffffff, 25, 10);
+      showRoulette(`デン！ ${SP[K.sp].n}（${R.n}）`, R.css);
+      return;
+    }
+    if (idx !== roul.idx){ roul.idx = idx; showSil(roul.seq[idx]); }
+    const g = sils[roul.seq[idx]]; if (g){ g.rotation.z = Math.sin(roul.t * 40) * .05; g.scale.setScalar(1.5 + Math.sin(roul.t * 25) * .05); }
+  } else {
+    roul.hold += dt;
+    if (runner) runner.g.position.y = Math.abs(Math.sin(roul.hold * 9)) * .5;
+    if (roul.hold > 1.2) startRun();
+  }
+}
+function startRun(){
+  state = 'escape'; roul = null; showRoulette(null);
+  wave.front = K.landZ - WAVE_GAP; wave.speed = waveSpeed(K.D); wave.t = 0; placeWave(); wave.group.visible = true;
+  cam.goal = Math.PI; cam.pitch = .35; cam.mul = 1.15;          // 三人称（後ろ）視点で走り出す
   $('escape').style.display = 'block';
-  showMessage(`${SP[K.sp].n} が飛び出した！ Wで走れ！！`, 3000, LANES[SP[K.sp].r].css);
+  showMessage('走れ！！ Wでゴールへ！', 2200, '#ff8787');
 }
 function removeRunner(){ if (runner){ scene.remove(runner.g); runner = null; } }
 function endEscape(){
-  state = 'idle'; wave.group.visible = false; $('escape').style.display = 'none';
-  removeRunner(); cam.yaw = 0; cam.pitch = .45; cam.mul = 1; pst.face = Math.PI; snapCam();   // 自分のキャラに戻る
+  state = 'idle'; roul = null; showRoulette(null); showSil(null);
+  wave.group.visible = false; $('escape').style.display = 'none'; $('danger').style.boxShadow = 'inset 0 0 160px 40px rgba(229,72,77,0)';
+  removeRunner(); cam.yaw = 0; cam.pitch = .45; cam.mul = 1; cam.goal = null; pst.face = Math.PI; snapCam();   // 自分のキャラに戻る
 }
 function die(){
   const name = SP[K.sp].n;
@@ -509,20 +564,19 @@ function die(){
   showMessage(`${name} は波に飲まれた…`, 3000, '#bfdbfe');
 }
 function winEscape(){
-  const sp = K.sp, inc = K.inc, L = LANES[SP[sp].r];
+  const sp = K.sp, inc = K.inc, R = RANKS[SP[sp].r];
   burst(runner.g.position.clone().setY(3), 0x86efac, 40, 14);
   endEscape();
   if (!gs.dex.includes(sp)) gs.dex.push(sp);
   const pet = { sp, inc };
   let msg;
-  if (gs.pets.length < MAX_PETS){ gs.pets.push(pet); msg = `生還！ ${SP[sp].n}（${L.n}）を基地に配置！ +${inc}/秒`; }
+  if (gs.pets.length < MAX_PETS){ gs.pets.push(pet); msg = `生還！ ${SP[sp].n}（${R.n}）を基地に配置！ +${inc}/秒`; }
   else {
     let mi = 0; gs.pets.forEach((p, i) => { if (p.inc < gs.pets[mi].inc) mi = i; });
     if (inc > gs.pets[mi].inc){ gs.pets[mi] = pet; msg = `生還！ 基地が満員なので弱いキャラと入れ替えた（+${inc}/秒）`; }
     else { const bonus = inc * 30; gs.money += bonus; msg = `生還！ 基地が満員なのでボーナス ${fmt(bonus)}金！`; }
   }
-  if (K.up) msg = '✨ランクアップ！ ' + msg;
-  showMessage(msg, 3800, L.css);
+  showMessage(msg, 3800, R.css);
   rebuildPets(); saveData();
 }
 
@@ -546,11 +600,10 @@ function collectBank(silent){
 }
 
 /* ================= 毎フレーム更新 ================= */
-const lerpAngle = (a, b, t) => a + ((((b - a + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * t;
 let labelTimer = 0;
 
+/* 自分のキャラ：基地では常に普通の速さ（スピードLvは関係なし） */
 function movePlayer(dt){
-  const sp = playerSpeed();
   let f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
   let r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   if (lifting) f = r = 0;
@@ -558,7 +611,7 @@ function movePlayer(dt){
   let dx = -sy * f + cy * r, dz = -cy * f - sy * r;
   const len = Math.hypot(dx, dz); if (len > 0){ dx /= len; dz /= len; }
   const k = 1 - Math.exp(-14 * dt);
-  pst.vel.x += (dx * sp - pst.vel.x) * k; pst.vel.z += (dz * sp - pst.vel.z) * k;
+  pst.vel.x += (dx * WALK_SPEED - pst.vel.x) * k; pst.vel.z += (dz * WALK_SPEED - pst.vel.z) * k;
   const pos = player.position;
   pos.x = clamp(pos.x + pst.vel.x * dt, -HALF_X, HALF_X);
   pos.z = clamp(pos.z + pst.vel.z * dt, LANE_START + 1, 86);       // 自分のキャラはレーンに入れない
@@ -573,22 +626,20 @@ function movePlayer(dt){
   player.rotation.y = pst.face;
 }
 
-/* 逃げるキャラの操作：Wでゴール（セーフゾーン）へ、A/Dで左右。スピードLvで速さが変わる */
+/* 逃げるキャラ：スピードLvが速さに反映される */
 function moveRunner(dt){
-  const L = LANES[K.lane], sp = playerSpeed(), g = runner.g;
+  const sp = runSpeed(), g = runner.g;
   const fz = (keys.KeyW || keys.ArrowUp) ? 1 : (keys.KeyS || keys.ArrowDown) ? -.35 : 0;
   let r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
   r *= Math.cos(cam.yaw) >= 0 ? 1 : -1;                              // 画面の左右に合わせる
-  const vx = r * sp * .8, vz = fz * sp;
-  g.position.x = clamp(g.position.x + vx * dt, laneCx(K.lane) - LANE_W / 2 + 2.5, laneCx(K.lane) + LANE_W / 2 - 2.5);
+  const vx = r * sp * .8, vz = fz * sp, mv = Math.abs(vx) + Math.abs(vz);
+  g.position.x = clamp(g.position.x + vx * dt, -(LANE_W / 2 - 2.5), LANE_W / 2 - 2.5);
   g.position.z = clamp(g.position.z + vz * dt, LANE_START - LANE_LEN + 20, LANE_START + 6);
-  if (keys.Space && runner.y <= 0.01){ runner.vy = 20; }
+  if (keys.Space && runner.y <= 0.01) runner.vy = 20;
   runner.vy -= 55 * dt; runner.y += runner.vy * dt; if (runner.y < 0){ runner.y = 0; runner.vy = 0; }
-  runner.t += dt * (Math.abs(vz) + Math.abs(vx)) * .35;
-  const hop = Math.abs(vz) + Math.abs(vx) > 1 ? Math.abs(Math.sin(runner.t)) * .9 : 0;
-  g.position.y = runner.y + hop;
-  const ang = Math.atan2(vx, vz || .001);
-  g.rotation.y = lerpAngle(g.rotation.y, (Math.abs(vz) + Math.abs(vx) > 1) ? ang : 0, 1 - Math.exp(-12 * dt));
+  runner.t += dt * mv * .35;
+  g.position.y = runner.y + (mv > 1 ? Math.abs(Math.sin(runner.t)) * .9 : 0);
+  g.rotation.y = lerpAngle(g.rotation.y, mv > 1 ? Math.atan2(vx, vz || .001) : 0, 1 - Math.exp(-12 * dt));
   g.rotation.z = Math.sin(runner.t * 2) * .08;
 }
 
@@ -605,7 +656,7 @@ function animateChar(dt){
     u.legL.rotation.x = u.legR.rotation.x = 0;
     u.armL.rotation.x = u.armR.rotation.x = -1.35;
     u.dumb.position.y = 1.9 + .9 * (1 - s);
-    gs.kickPower += dt * 2;
+    gs.kickPower += dt * 3;                                          // 屈伸するほどパワーが上がる
   } else {
     u.hips.position.y = 3; u.legL.scale.y = u.legR.scale.y = 1;
     const spd = Math.hypot(pst.vel.x, pst.vel.z);
@@ -624,25 +675,27 @@ function update(dt){
     K.t = Math.min(1, K.t + dt / K.dur); const p = K.t;
     flyBlock.position.set(K.sx + (K.landX - K.sx) * p, 2 + (1 - p) * 8 + 4 * K.peak * p * (1 - p), K.sz + (K.landZ - K.sz) * p);
     flyBlock.rotation.x += dt * 8; flyBlock.rotation.z += dt * 5;
-    pst.face = lerpAngle(pst.face, Math.PI, 1 - Math.exp(-8 * dt)); player.rotation.y = pst.face;
     if (p >= 1) landBlock();
+  } else if (state === 'roulette'){
+    updateRoulette(dt);
   } else if (state === 'escape'){
     moveRunner(dt);
-    wave.front += wave.speed * dt; wave.t += dt; placeWave(K.lane);
+    wave.front += wave.speed * dt; wave.t += dt; placeWave();
     wave.body.scale.y = 1 + .05 * Math.sin(wave.t * 5);
     const rz = runner.g.position.z;
     if (wave.front >= rz - 1){ die(); }
     else if (rz > LANE_START){ winEscape(); }
     else {
       const remain = LANE_START - rz, gap = rz - wave.front;
-      $('escapeText').textContent = `${LANES[K.lane].n}レーン ／ ゴールまで ${Math.ceil(remain)}m ／ 波まで ${Math.ceil(gap)}m`;
+      $('escapeText').textContent = `ゴールまで ${Math.ceil(remain)}m ／ 波まで ${Math.ceil(gap)}m ／ [C]視点切替`;
       $('escapeFill').style.width = clamp((1 - remain / K.D) * 100, 0, 100) + '%';
       $('escapeFill').style.background = gap < 15 ? '#e5484d' : '#2f9e44';
+      $('danger').style.boxShadow = `inset 0 0 160px 40px rgba(229,72,77,${(clamp((25 - gap) / 25, 0, 1) * .6).toFixed(2)})`;
     }
-    pst.face = lerpAngle(pst.face, Math.PI, 1 - Math.exp(-8 * dt)); player.rotation.y = pst.face;
   } else {
     movePlayer(dt);
   }
+  if (state !== 'idle'){ pst.face = lerpAngle(pst.face, Math.PI, 1 - Math.exp(-8 * dt)); player.rotation.y = pst.face; }
   // キックメーター（セーフゾーンに立つと自動で動く）
   const was = meterOn;
   meterOn = state === 'idle' && !lifting && inSafe();
@@ -659,18 +712,24 @@ function update(dt){
   if (labelTimer <= 0){ labelTimer = .3; bankLabel.userData.set(['🏦 たまった金', fmt(gs.bank) + ' 金'], '#fde68a'); }
 }
 
-/* カメラ：逃走中は「前（ゴール側）」から見て、背後の波が見える。波がカメラや自分に被らない */
+/* カメラ：逃走は三人称（キャラの後ろ）が基本。カメラは常に波の手前に留まり、波が視界を覆わない */
 function updateCamera(dt){
-  const tgt = targetPos(), k = 1 - Math.exp(-12 * dt);
-  camTarget.lerp(tgt, k);
+  if (cam.goal !== null){
+    cam.yaw = lerpAngle(cam.yaw, cam.goal, 1 - Math.exp(-5 * dt));
+    const diff = Math.abs((((cam.goal - cam.yaw + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI);
+    if (diff < .02){ cam.yaw = cam.goal; cam.goal = null; }
+  }
+  camTarget.lerp(targetPos(), 1 - Math.exp(-12 * dt));
   const d = cam.dist * cam.mul, cp = Math.cos(cam.pitch);
   camera.position.set(camTarget.x + Math.sin(cam.yaw) * cp * d, Math.max(1.5, camTarget.y + Math.sin(cam.pitch) * d), camTarget.z + Math.cos(cam.yaw) * cp * d);
+  if (state === 'escape' && wave.group.visible) camera.position.z = Math.max(camera.position.z, wave.front + 3);
   camera.lookAt(camTarget);
 }
 
 /* ================= HUD ================= */
 const setText = (id, v) => { const el = $(id); if (el._v !== v){ el._v = v; el.textContent = v; } };
 const setShow = (id, show, disp = 'block') => { const el = $(id); const v = show ? disp : 'none'; if (el.style.display !== v) el.style.display = v; };
+let meterKey = '';
 function updateUI(){
   setText('uiMoney', fmt(gs.money)); setText('uiBank', fmt(gs.bank));
   setText('uiPower', Math.floor(gs.kickPower)); setText('uiDist', maxKick());
@@ -681,10 +740,19 @@ function updateUI(){
   sb.disabled = max || gs.money < speedCost();
   setShow('meterWrap', meterOn, 'flex');
   if (meterOn){
-    const L = LANES[curLane()], D = kickDist(meterVal);
+    const mk = maxKick(), D = kickDist(meterVal), zone = zoneOf(D);
+    if (meterKey !== String(mk)){            // メーターの色＝その位置で出やすいレアリティ
+      meterKey = String(mk);
+      const stops = [];
+      RANKS.forEach((R, i) => {
+        const fa = clamp((BANDS[i] - 60) / (mk - 60), 0, 1), fb = clamp((BANDS[i + 1] - 60) / (mk - 60), 0, 1);
+        if (fb > fa) stops.push(`${R.css} ${(fa * 100).toFixed(1)}% ${(fb * 100).toFixed(1)}%`);
+      });
+      $('meterBar').style.background = `linear-gradient(90deg,${stops.join(',')})`;
+    }
     $('meterMark').style.left = (meterVal * 100) + '%';
-    setText('meterLane', `${L.n}レーン（推奨 スピードLv.${L.rec}）`); $('meterLane').style.color = L.css;
-    setText('meterInfo', `パワー ${Math.round(meterVal * 100)}% → 飛距離 ${D}m（最大 ${maxKick()}m）${meterVal >= .9 ? ' ★PERFECT' : ''} ／ [E]かクリックで止めてキック`);
+    setText('meterLane', `着地ゾーン：${RANKS[zone].n}（${BANDS[zone]}〜${BANDS[zone + 1]}m）`); $('meterLane').style.color = RANKS[zone].css;
+    setText('meterInfo', `パワー ${Math.round(meterVal * 100)}% → 飛距離 ${D}m（最大 ${mk}m）${meterVal >= .9 ? ' ★PERFECT' : ''} ／ 波の速さ ${Math.round(waveSpeed(D))}（推奨スピードLv.${recLv(D)}）`);
   }
   setShow('workStatus', lifting);
   if (lifting) setText('workStatus', `💪 筋トレ中… パワー ${Math.floor(gs.kickPower)}（Qでやめる）`);
